@@ -15,7 +15,10 @@ def website(page):
 
 @app.route("/api/toJson", methods=["post"])
 def tojson():
-    open("article.txt", "w", encoding="utf8").write(flask.request.form["data"])
+    res = flask.request.form["data"].replace("\n", "").replace(" ", "")
+    while "\n" in res or " " in res:
+        res = res.replace()
+    open("article.txt", "w", encoding="utf8").write(res)
     subprocess.run(["python", "ArticleLoader.py"], shell=True)
     return flask.send_file("article.json")
 
