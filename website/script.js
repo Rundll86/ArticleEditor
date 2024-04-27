@@ -81,6 +81,10 @@ const dropPos = [0, 0];
 const lineDraw = document.getElementById("line");
 const viewRect = document.body.getBoundingClientRect();
 const context = lineDraw.getContext("2d");
+function reset() {
+    lines = {};
+    addEnd("#");
+};
 var lines = {};
 var idLast = 1;
 var connecting = {
@@ -264,13 +268,15 @@ window.addEventListener("mouseup", () => {
         e.moving = false;
     });
     if (connecting.state) {
-        if (connecting.type === lineTypes.talk) {
-            if (connecting.preToOK) {
-                lines[connecting.toTarget].to = connecting.preToOKButID;
-            };
-        } else if (connecting.type === lineTypes.select) {
-            if (connecting.preToOK) {
-                lines[connecting.toTarget].options[connecting.whoAmI].to = connecting.preToOKButID;
+        if (connecting.preToOKButID !== connecting.toTarget) {
+            if (connecting.type === lineTypes.talk) {
+                if (connecting.preToOK) {
+                    lines[connecting.toTarget].to = connecting.preToOKButID;
+                };
+            } else if (connecting.type === lineTypes.select) {
+                if (connecting.preToOK) {
+                    lines[connecting.toTarget].options[connecting.whoAmI].to = connecting.preToOKButID;
+                };
             };
         };
         connecting.state = false;
@@ -311,9 +317,10 @@ class Aline {
     pos = [100, 100];
     type = lineTypes.talk;
     options = [];
-    constructor(a, b) {
+    constructor(a, b, t = lineTypes.talk) {
         this.to = a;
         this.start = b;
+        this.type = t;
     };
 };
 function drawArrow(ctx, startX, startY, endX, endY, arrowSize) {
@@ -364,6 +371,7 @@ function generateArticle() {
     let res = "";
     Object.keys(lines).forEach(
         eid => {
+            if (eid === "#") { return; };
             /**
              * @type {Aline}
              */
@@ -378,7 +386,7 @@ function generateArticle() {
                 res += ":";
                 res += e.start.querySelector("input.contentInput").value;
                 res += ":";
-                res += e.to;
+                res += e.to ? e.to : "#";
                 res += ";";
             } else if (e.type === lineTypes.select) {
                 res += "&:";
@@ -393,7 +401,7 @@ function generateArticle() {
                 e.options.forEach(e => {
                     res += e.label.value;
                     res += ":";
-                    res += e.to;
+                    res += e.to ? e.to : "#";
                     res += ";";
                 });
                 res += "};";
@@ -406,6 +414,7 @@ function generateArticle() {
     );
     return res;
 };
+reset();
 function updateLines() {
     lineDraw.width = lineDraw.clientWidth;
     lineDraw.height = lineDraw.clientHeight;
@@ -417,14 +426,22 @@ function updateLines() {
     context.closePath();
     if (connecting.state) {
         let e = connecting.start.getBoundingClientRect();
-        drawArrow(
-            context,
-            connecting.type === lineTypes.talk ? e.left + e.width + 10 :
-                connecting.type === lineTypes.select ? e.left + e.width / 2 : 0,
+        let epos = findSegmentRectangleIntersection(
+            e.left + e.width / 2,
             e.top + e.height / 2,
+            e.width + 20,
+            e.height + 20,
+            mosuePos.x,
+            mosuePos.y
+        );
+        epos ? drawArrow(
+            context,
+            epos.x,
+            epos.y,
             mosuePos.x,
             mosuePos.y,
-            10);
+            10
+        ) : undefined;
     };
     Object.values(lines).forEach(
         /**
@@ -450,7 +467,15 @@ function updateLines() {
                     e.left + e.width + 10,
                     e.top + e.height / 2
                 );
-                if (targetpos) { drawArrow(context, e.left + e.width + 10, e.top + e.height / 2, targetpos.x, targetpos.y, 10); };
+                let epos = findSegmentRectangleIntersection(
+                    e.left + e.width / 2,
+                    e.top + e.height / 2,
+                    e.width + 20,
+                    e.height + 20,
+                    target.left + target.width / 2,
+                    target.top + target.height / 2
+                );
+                if (targetpos && epos) { drawArrow(context, epos.x, epos.y, targetpos.x, targetpos.y, 10); };
             } else if (ele.type === lineTypes.select) {
                 ele.options.forEach(o => {
                     /**
@@ -471,7 +496,15 @@ function updateLines() {
                         e.left + e.width / 2,
                         e.top + e.height / 2
                     );
-                    if (targetpos) { drawArrow(context, e.left + e.width / 2, e.top + e.height / 2, targetpos.x, targetpos.y, 10); };
+                    let epos = findSegmentRectangleIntersection(
+                        e.left + e.width / 2,
+                        e.top + e.height / 2,
+                        e.width + 20,
+                        e.height + 20,
+                        target.left + target.width / 2,
+                        target.top + target.height / 2
+                    );
+                    if (targetpos) { drawArrow(context, epos.x, epos.y, targetpos.x, targetpos.y, 10); };
                 });
             };
         }
