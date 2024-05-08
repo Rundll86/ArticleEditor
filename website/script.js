@@ -1,20 +1,68 @@
 const addBoxBtn = document.getElementById("add-box");
 const addSelectBoxBtn = document.getElementById("add-select-box");
 const geneCodeBtn = document.getElementById("gene-code");
+const idControlBox = document.getElementById("control");
+const projNameInput = document.getElementById("proj-name"),
+    projTitleInput = document.getElementById("proj-title"),
+    projAuthorInput = document.getElementById("proj-author"),
+    projInfoInput = document.getElementById("proj-info");
+const projPanel = document.getElementById("proj-panel");
+const projPanelHeight = projPanel.clientHeight;
+const showPanelBtn = document.getElementById("show-panel");
+const showPanelBtnText = showPanelBtn.querySelector("span");
+const addProjBtn = document.getElementById("add-proj");
+addProjBtn.addEventListener("click", () => requestProj("add", {
+    name: projNameInput.value,
+    title: projTitleInput.value,
+    author: projAuthorInput.value,
+    info: projInfoInput.value
+}, pullProjs));
+const delProjBtn = document.getElementById("del-proj");
+delProjBtn.addEventListener("click", () => requestProj("del", { name: ProjBox.selected }, pullProjs));
+const saveProjBtn = document.getElementById("save-proj");
+const readProjBtn = document.getElementById("read-proj");
+const projList = document.getElementById("proj-list");
+const userPwdInput = document.getElementById("user-pwd");
+const loadingText = document.getElementById("loading-text");
+const projBoxes = document.getElementById("proj-boxes");
+userPwdInput.addEventListener("change", () => { userPasswd = userPwdInput.value; });
+showPanelBtn.addEventListener("click", () => {
+    panelOpen = !panelOpen;
+    updateProjPanel();
+});
+var panelOpen = false;
+function updateProjPanel() {
+    projPanel.style.height = panelOpen ? projPanelHeight + "px" : "0px";
+    if (panelOpen) {
+        showPanelBtnText.className = "fa fa-angle-double-up";
+        projPanel.style.transform = "scale(1,1)";
+        projPanel.style.opacity = "1";
+    } else {
+        showPanelBtnText.className = "fa fa-angle-double-down";
+        projPanel.style.transform = "scale(1,0)";
+        projPanel.style.opacity = "0";
+        ProjBox.selected = null;
+        ProjBox.update();
+    };
+};
+idControlBox.addEventListener("mouseover", () => { moveingBox = true; });
+idControlBox.addEventListener("mouseout", () => { moveingBox = false; });
 const lineTypes = {
     talk: "talk",
     select: "select",
     end: "end"
 };
 geneCodeBtn.addEventListener("click", () => {
+    let oldtext = geneCodeBtn.innerText;
     navigator.clipboard.writeText(generateArticle());
     geneCodeBtn.innerText = "生成完成！已复制代码！";
     setTimeout(() => {
-        geneCodeBtn.innerText = "生成文章代码";
+        geneCodeBtn.innerText = oldtext;
     }, 2000);
 });
 const geneJsonBtn = document.getElementById("gene-json");
 geneJsonBtn.addEventListener("click", () => {
+    let oldtext = geneJsonBtn.innerText;
     $.ajax({
         url: "/api/toJson",
         type: "post",
@@ -23,9 +71,9 @@ geneJsonBtn.addEventListener("click", () => {
         },
         success(data) {
             navigator.clipboard.writeText(JSON.stringify(data));
-            geneJsonBtn.innerText = "生成完成！已复制代码！";
+            geneJsonBtn.innerText = "编译完成！已复制代码！";
             setTimeout(() => {
-                geneJsonBtn.innerText = "编译文章JSON";
+                geneJsonBtn.innerText = oldtext;
             }, 2000);
         }
     });
@@ -70,6 +118,100 @@ document.getElementById("load-code").addEventListener("click", () => {
     });
     selector.click();
 });
+var userPasswd = "";
+function requestProj(type, data, callback = (_data) => { }) {
+    $.ajax({
+        url: "/api/project/" + userPasswd + "/" + type,
+        type: "post",
+        data,
+        success(data) {
+            let dataA = JSON.parse(data);
+            if (dataA.status) {
+                callback(dataA.message);
+            } else {
+                loadingText.innerText = "失败！" + dataA.message;
+            };
+        },
+        error() { loadingText.innerText = "未知错误，请刷新网页重试。"; }
+    });
+};
+class ProjBox {
+    /**
+     * @type {Array<ProjBox>}
+     */
+    static boxes = {};
+    static selected = null;
+    static reset() {
+        this.boxes = {};
+        this.selected = null;
+        this.update();
+    };
+    static update() {
+        delProjBtn.disabled = !this.selected;
+        saveProjBtn.disabled = !this.selected;
+        readProjBtn.disabled = !this.selected;
+    };
+    result = null;
+    selected = false;
+    name = null;
+    update() {
+        if (this.selected) {
+            this.result.classList.remove("selected");
+            this.selected = false;
+            ProjBox.selected = null;
+        }
+        else {
+            Object.values(ProjBox.boxes).forEach(e => {
+                e.selected = true;
+                e.update();
+            });
+            this.result.classList.add("selected");
+            this.selected = true;
+            ProjBox.selected = this.name;
+        };
+        ProjBox.update();
+    };
+    constructor(title, name, author, info) {
+        this.result = eleTree("div").clsName("proj-box").child(
+            eleTree("div").clsName("textleft").child(
+                eleTree("span").clsName("proj-title").attr("innerText", title)
+            ).child(
+                eleTree("span").clsName("proj-name").attr("innerText", name)
+            ).child(br()).child(
+                eleTree("span").clsName("proj-author").attr("innerText", author)
+            ).child(br()).child(
+                eleTree("span").clsName("proj-info").attr("innerText", info)
+            )
+        ).listener("click", () => this.update()).result;
+        ProjBox.boxes[name] = this;
+        this.name = name;
+    }
+};
+function pullProjs() {
+    loadingText.innerText = "正在拉取云端项目";
+    $.ajax({
+        url: "/api/project/" + userPasswd + "/getall",
+        type: "post",
+        success(data) {
+            ProjBox.reset();
+            let dataA = JSON.parse(data);
+            if (dataA.status) {
+                projBoxes.innerHTML = "";
+                for (let i in dataA.message) {
+                    let current = dataA.message[i];
+                    projBoxes.appendChild(
+                        new ProjBox(current.title, current.name, current.author, current.info).result
+                    );
+                };
+                loadingText.innerText = "拉取成功！";
+            }
+            else {
+                loadingText.innerText = "失败！" + dataA.message;
+            };
+        }
+    });
+};
+document.getElementById("pull-proj").addEventListener("click", pullProjs);
 const msgboxCont = document.getElementById("msgbox-c");
 const clickedElement = {
     drop: false
@@ -129,8 +271,14 @@ function eleTree(tag) {
             });
             return this;
         },
-        listener(n, h) {
-            this.result.addEventListener(n, h);
+        listener(n, h =
+            /**
+             * 
+             * @param {Event} e 
+             * @param {HTMLElement} r 
+             */
+            (e, r) => { }) {
+            this.result.addEventListener(n, e => h(e, this.result));
             return this;
         }
     };
@@ -284,7 +432,7 @@ window.addEventListener("mouseup", () => {
     };
 });
 window.addEventListener("mousemove", (e) => {
-    e.preventDefault();
+    !moveingBox ? e.preventDefault() : null;
     mosuePos.x = e.clientX;
     mosuePos.y = e.clientY;
     if (clickedElement.drop) {
@@ -303,10 +451,12 @@ window.addEventListener("mousemove", (e) => {
     msgboxCont.style.top = dropPos[1] + "px";
 });
 window.addEventListener("wheel", (e) => {
-    if (e.deltaY > 0 ? scaling > 20 : true) { scaling -= e.deltaY * 0.1; };
-    msgboxCont.style.transform = `scale(${scaling}%)`;
-    let bounding = msgboxCont.getBoundingClientRect();
-    msgboxCont.style.transformOrigin = `${e.clientX - bounding.left}px ${e.clientY - bounding.top}px`;
+    if (!moveingBox) {
+        if (e.deltaY > 0 ? scaling > 20 : true) { scaling -= e.deltaY * 0.1; };
+        msgboxCont.style.transform = `scale(${scaling}%)`;
+        let bounding = msgboxCont.getBoundingClientRect();
+        msgboxCont.style.transformOrigin = `${e.clientX - bounding.left}px ${e.clientY - bounding.top}px`;
+    };
 });
 class Aline {
     to = "";
@@ -512,3 +662,4 @@ function updateLines() {
     requestAnimationFrame(updateLines);
 };
 requestAnimationFrame(updateLines);
+updateProjPanel();

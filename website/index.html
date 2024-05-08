@@ -14,15 +14,45 @@
     <canvas id="line"></canvas>
     <div id="msgbox-c"></div>
     <div id="control">
-        <span id="title">ArticleEditor by FallingShrimp</span>
-        <button id="add-box">添加对话框</button>
-        <button id="add-select-box">添加选项框</button>
-        <button id="gene-code">生成文章代码</button>
-        <button id="gene-json">编译文章JSON</button>
-        <button id="load-code">从代码加载到编辑器</button>
+        <span id="title">ArticleEditor by FallingShrimp</span><br>
+        <div class="panelbar">
+            编辑菜单
+            <button id="add-box">+ 对话框</button>
+            <button id="add-select-box">+ 对话选项</button>
+            <button id="gene-code">生成</button>
+            <button id="gene-json">编译</button>
+            <button id="load-code">加载</button>
+        </div><br>
+        <div class="panelbar">
+            云端项目
+            <button id="add-proj">新建</button>
+            <button id="del-proj" disabled>删除</button>
+            <button id="save-proj" disabled>保存</button>
+            <button id="read-proj" disabled>读取</button>
+            <button id="show-panel">
+                <span class="fa fa-angle-double-down"></span>
+            </button><br>
+            <div id="proj-panel">
+                <div id="create-panel" class="frame-box">
+                    配置面板<br>
+                    <input type="text" id="proj-name" placeholder="项目名称"><br>
+                    <input type="text" id="proj-title" placeholder="项目标题"><br>
+                    <input type="text" id="proj-author" placeholder="项目作者"><br>
+                    <input type="text" id="proj-info" placeholder="项目备注">
+                </div><br>
+                <div id="proj-list" class="frame-box">
+                    <div id="passwd-input">
+                        <span id="loading-text">准备就绪</span><br>
+                        输入主密码：<input type="password" id="user-pwd">
+                        <button id="pull-proj">拉取项目列表</button>
+                    </div>
+                    <div id="proj-boxes"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="./script.js"></script>
-    <script src="./jquery.js"></script>
+    <script src="https://cdn.staticfile.net/jquery/3.7.1/jquery.min.js"></script>
 </body>
 
 </html>

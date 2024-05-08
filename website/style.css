@@ -29,6 +29,14 @@ body {
     text-align: center;
 }
 
+#control .panelbar {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px gray solid;
+    width: 40%;
+    display: inline-block;
+}
+
 button:hover {
     background-color: rgba(0, 0, 0, 0.1);
     border-color: rgba(0, 0, 0, 0.3);
@@ -40,6 +48,14 @@ button:active {
     border: transparent 2px solid;
     padding: 3px 5px;
     border-radius: 5px;
+}
+
+button:disabled {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+button:disabled:hover {
+    border: transparent 2px solid;
 }
 
 .msgbox {
@@ -122,4 +138,79 @@ body {
     height: 50px;
     justify-content: center;
     align-items: center;
+}
+
+.frame-box {
+    border: rgba(0, 0, 0, 0.2) 2px solid;
+    border-radius: 5px;
+    margin: 10px;
+    padding: 5px;
+}
+
+#proj-list {
+    width: 60%;
+    display: inline-block;
+}
+
+#create-panel {
+    width: 60%;
+    display: inline-block;
+}
+
+#proj-list .proj-box {
+    border-radius: 5px;
+    border: rgba(0, 0, 0, 0.2) 2px solid;
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 7px;
+    margin: 5px;
+    position: relative;
+}
+
+.proj-box.selected {
+    border-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.proj-box .proj-name {
+    font-size: 14px;
+    color: gray;
+}
+
+.proj-box .proj-author {
+    font-size: 15px;
+    color: grey;
+}
+
+.proj-author::before {
+    content: "By ";
+}
+
+.textleft {
+    text-align: left;
+    display: inline-block;
+    width: 70%;
+}
+
+#loading-text {
+    color: black;
+    font-size: 14px;
+}
+
+#loading-text::before,
+#loading-text::after {
+    content: "*";
+    margin: 5px;
+}
+
+#proj-boxes {
+    height: 260px;
+    overflow: scroll;
+}
+
+#proj-boxes::-webkit-scrollbar {
+    display: none;
+}
+
+#proj-panel {
+    overflow: hidden;
+    transform-origin: 50% 0%;
 }
