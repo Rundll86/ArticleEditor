@@ -453,7 +453,7 @@ function addEnd(mid) {
 };
 function addImage(mid = null, to = "", src = "") {
     let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
-    let myImage = eleTree("img").attr("src", src).clsName("imageInput");
+    let myImage = eleTree("img").attr("src", "/getAsset/" + src).clsName("imageInput");
     let res = eleTree("div").clsName("msgbox").child(
         eleTree("div").attr("innerText", "切换背景图像").clsName("msgbox-title")
     ).child(
@@ -519,7 +519,7 @@ function uploadMedia(callback = (_) => { }) {
 };
 function addVideo(mid = null, to = "", src = "") {
     let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
-    let myVideo = eleTree("video").attr("src", src).clsName("videoInput");
+    let myVideo = eleTree("video").attr("src", "/getAsset/" + src).clsName("videoInput");
     let res = eleTree("div").clsName("msgbox").child(
         eleTree("div").attr("innerText", "播放视频").clsName("msgbox-title")
     ).child(
