@@ -1,5 +1,7 @@
 const addBoxBtn = document.getElementById("add-box");
 const addSelectBoxBtn = document.getElementById("add-select-box");
+const addImageBtn = document.getElementById("add-image");
+const addVideoBtn = document.getElementById("add-video");
 const geneCodeBtn = document.getElementById("gene-code");
 const idControlBox = document.getElementById("control");
 const projNameInput = document.getElementById("proj-name"),
@@ -144,7 +146,9 @@ idControlBox.addEventListener("mouseout", () => { moveingBox = false; });
 const lineTypes = {
     talk: "talk",
     select: "select",
-    end: "end"
+    end: "end",
+    image: "image",
+    video: "video"
 };
 geneCodeBtn.addEventListener("click", () => {
     let oldtext = geneCodeBtn.innerText;
@@ -165,7 +169,7 @@ geneJsonBtn.addEventListener("click", () => {
         },
         success(data) {
             navigator.clipboard.writeText(JSON.stringify(data));
-            geneJsonBtn.innerText = "编译完成！已复制代码！";
+            geneJsonBtn.innerText = "生成完成！已复制代码！";
             setTimeout(() => {
                 geneJsonBtn.innerText = oldtext;
             }, 2000);
@@ -173,6 +177,7 @@ geneJsonBtn.addEventListener("click", () => {
     });
 });
 function loadToEditor(data) {
+    reset();
     let offsetx = 0;
     let offsety = 0;
     Object.keys(data).forEach(eid => {
@@ -180,16 +185,19 @@ function loadToEditor(data) {
         let id;
         if (e.type === "talk") {
             id = addBox(e.emoji, e.output, e.content, eid, e.jumpTo);
-        }
-        else if (e.type === "select") {
+        } else if (e.type === "select") {
             id = addSelectBox(e.emoji, e.output, e.content, eid, e.options);
-        } else {
+        } else if (e.type === "end") {
             id = addEnd(eid);
+        } else if (e.type === "image") {
+            id = addImage(eid, e.jumpTo, e.src);
+        } else if (e.type === "video") {
+            id = addVideo(eid, e.jumpTo, e.src);
         };
         lines[id].pos[0] += offsetx;
         lines[id].pos[1] += offsety;
-        offsetx += 100;
-        offsety += 150;
+        offsetx += 200;
+        offsety += 200;
     });
 };
 document.getElementById("load-code").addEventListener("click", () => {
@@ -263,6 +271,7 @@ const lineDraw = document.getElementById("line");
 const viewRect = document.body.getBoundingClientRect();
 const context = lineDraw.getContext("2d");
 function reset() {
+    msgboxCont.innerHTML = "";
     lines = {};
     addEnd("#");
 };
@@ -286,12 +295,11 @@ var moveingBox = false;
 var mosuePos = { x: 0, y: 0 };
 var scaling = 100;
 function eleTree(tag) {
-    /**
-     * @type {HTMLElement}
-     */
-    let res = document.createElement(tag);
     return {
-        result: res,
+        /**
+         * @type {HTMLElement}
+         */
+        result: tag instanceof HTMLElement ? tag : document.createElement(tag),
         css(n, v) {
             this.result.style[n] = v;
             return this;
@@ -443,8 +451,88 @@ function addEnd(mid) {
     lines[myid].type = lineTypes.end;
     return myid;
 };
+function addImage(mid = null, to = "", src = "") {
+    let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
+    let res = eleTree("div").clsName("msgbox").child(
+        eleTree("div").attr("innerText", "切换背景图像").clsName("msgbox-title")
+    ).child(
+        eleTree("div").child(
+            eleTree("img").attr("src", src).clsName("imageInput")
+        ).child(br()).child(
+            eleTree("button").attr("innerText", "上传图像")
+        ).clsName("contentEdit")
+    ).child(
+        eleTree("div").clsName("connectStart").child(
+            eleTree("span").clsName("fa", "fa-arrow-circle-right")
+        ).child(
+            eleTree("span").attr("innerText", " 连接")
+        ).listener("mousedown", () => {
+            connecting.state = true;
+            connecting.start = res;
+            connecting.type = lineTypes.talk;
+            connecting.toTarget = myid;
+            lines[myid].to = "";
+            clickedElement.drop = false;
+        })
+    ).listener("mouseover", () => {
+        connecting.preToOK = res;
+        connecting.preToOKButID = myid;
+    }).listener("mouseout", () => {
+        connecting.preToOK = null;
+    }).listener("mousedown", () => {
+        moveingBox = true;
+        lines[myid].moving = true;
+    }).result;
+    msgboxCont.appendChild(res);
+    lines[myid] = new Aline(to, res);
+    lines[myid].type = lineTypes.image;
+    lines[myid].src = src;
+    idLast++;
+    return myid;
+};
+function addVideo(mid = null, to = "", src = "") {
+    let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
+    let res = eleTree("div").clsName("msgbox").child(
+        eleTree("div").attr("innerText", "播放视频").clsName("msgbox-title")
+    ).child(
+        eleTree("div").child(
+            eleTree("video").attr("src", src).clsName("videoInput")
+        ).child(br()).child(
+            eleTree("button").attr("innerText", "上传视频")
+        ).clsName("contentEdit")
+    ).child(
+        eleTree("div").clsName("connectStart").child(
+            eleTree("span").clsName("fa", "fa-arrow-circle-right")
+        ).child(
+            eleTree("span").attr("innerText", " 连接")
+        ).listener("mousedown", () => {
+            connecting.state = true;
+            connecting.start = res;
+            connecting.type = lineTypes.talk;
+            connecting.toTarget = myid;
+            lines[myid].to = "";
+            clickedElement.drop = false;
+        })
+    ).listener("mouseover", () => {
+        connecting.preToOK = res;
+        connecting.preToOKButID = myid;
+    }).listener("mouseout", () => {
+        connecting.preToOK = null;
+    }).listener("mousedown", () => {
+        moveingBox = true;
+        lines[myid].moving = true;
+    }).result;
+    msgboxCont.appendChild(res);
+    lines[myid] = new Aline(to, res);
+    lines[myid].type = lineTypes.video;
+    lines[myid].src = src;
+    idLast++;
+    return myid;
+};
 addBoxBtn.addEventListener("click", () => addBox());
 addSelectBoxBtn.addEventListener("click", () => addSelectBox());
+addImageBtn.addEventListener("click", () => addImage());
+addVideoBtn.addEventListener("click", () => addVideo());
 window.addEventListener("mousedown", () => {
     if (!connecting.state && !moveingBox) { clickedElement.drop = true; };
 });
@@ -506,6 +594,7 @@ class Aline {
     pos = [100, 100];
     type = lineTypes.talk;
     options = [];
+    src = "";
     constructor(a, b, t = lineTypes.talk) {
         this.to = a;
         this.start = b;
@@ -598,6 +687,22 @@ function generateArticle() {
                 res += "#:";
                 res += eid;
                 res += ";";
+            } else if (e.type === lineTypes.image) {
+                res += "!:";
+                res += eid;
+                res += ":";
+                res += e.src;
+                res += ":";
+                res += e.to ? e.to : "#";
+                res += ";";
+            } else if (e.type === lineTypes.video) {
+                res += "$:";
+                res += eid;
+                res += ":";
+                res += e.src;
+                res += ":";
+                res += e.to ? e.to : "#";
+                res += ";";
             };
         }
     );
@@ -640,32 +745,9 @@ function updateLines() {
         ele => {
             ele.start.style.left = ele.pos[0] + "px";
             ele.start.style.top = ele.pos[1] + "px";
-            if (!Object.keys(lines).includes(ele.to) && ele.type === lineTypes.talk) { return; };
+            if (!Object.keys(lines).includes(ele.to) && ele.type !== lineTypes.select) { return; };
             let e, targetpos;
-            if (ele.type === lineTypes.talk) {
-                e = ele.start.getBoundingClientRect();
-                /**
-                 * @type {DOMRect}
-                 */
-                let target = lines[ele.to].start.getBoundingClientRect();
-                targetpos = findSegmentRectangleIntersection(
-                    target.left + target.width / 2,
-                    target.top + target.height / 2,
-                    target.width + 20,
-                    target.height + 20,
-                    e.left + e.width + 10,
-                    e.top + e.height / 2
-                );
-                let epos = findSegmentRectangleIntersection(
-                    e.left + e.width / 2,
-                    e.top + e.height / 2,
-                    e.width + 20,
-                    e.height + 20,
-                    target.left + target.width / 2,
-                    target.top + target.height / 2
-                );
-                if (targetpos && epos) { drawArrow(context, epos.x, epos.y, targetpos.x, targetpos.y, 10); };
-            } else if (ele.type === lineTypes.select) {
+            if (ele.type === lineTypes.select) {
                 ele.options.forEach(o => {
                     /**
                      * @type {DOMRect}
@@ -695,6 +777,29 @@ function updateLines() {
                     );
                     if (targetpos) { drawArrow(context, epos.x, epos.y, targetpos.x, targetpos.y, 10); };
                 });
+            } else {
+                e = ele.start.getBoundingClientRect();
+                /**
+                 * @type {DOMRect}
+                 */
+                let target = lines[ele.to].start.getBoundingClientRect();
+                targetpos = findSegmentRectangleIntersection(
+                    target.left + target.width / 2,
+                    target.top + target.height / 2,
+                    target.width + 20,
+                    target.height + 20,
+                    e.left + e.width + 10,
+                    e.top + e.height / 2
+                );
+                let epos = findSegmentRectangleIntersection(
+                    e.left + e.width / 2,
+                    e.top + e.height / 2,
+                    e.width + 20,
+                    e.height + 20,
+                    target.left + target.width / 2,
+                    target.top + target.height / 2
+                );
+                if (targetpos && epos) { drawArrow(context, epos.x, epos.y, targetpos.x, targetpos.y, 10); };
             };
         }
     );

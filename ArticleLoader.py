@@ -1,5 +1,18 @@
 import sys, json
 
+
+def getLocalStr(target, start, end=0):
+    return target[
+        len(target) + start if start <= 0 else start - 1 : (
+            len(target) + end if end <= 0 else end
+        )
+    ]
+
+
+def findStr(target: str, substr):
+    return target.index(substr) + 1
+
+
 if len(sys.argv) < 2:
     sys.argv.append("article.txt")
 targetfile = sys.argv[1]
@@ -22,21 +35,10 @@ try:
             lines[i] = lines[i][1:]
     lines.remove("") if "" in lines else ""
     result = {}
-
-    def getLocalStr(target, start, end=0):
-        return target[
-            len(target) + start if start <= 0 else start - 1 : (
-                len(target) + end if end <= 0 else end
-            )
-        ]
-
-    def findStr(target: str, substr):
-        return target.index(substr) + 1
-
     dataArgs = []
     for i in lines:
         dataArgs.append(i.split(":"))
-    typelist = {"@": "talk", "&": "select", "#": "end"}
+    typelist = {"@": "talk", "&": "select", "#": "end", "!": "image", "$": "video"}
     findingOptions = False
     lastFindingOptions: list = None
     for i in dataArgs:
@@ -58,13 +60,21 @@ try:
                 current["emoji"] = i[3]
                 current["content"] = i[4]
                 current["jumpTo"] = i[5]
-            if currentType == "select":
+            elif currentType == "select":
                 current["output"] = i[2]
                 current["emoji"] = i[3]
                 current["content"] = i[4]
                 current["options"] = [{"label": i[5][1:], "jumpTo": i[6]}]
                 findingOptions = True
                 lastFindingOptions = current["options"]
+            elif currentType == "end":
+                current["jumpTo"] = i[2]
+            elif currentType == "image":
+                current["src"] = i[2]
+                current["jumpTo"] = i[3]
+            elif currentType == "video":
+                current["src"] = i[2]
+                current["jumpTo"] = i[3]
             result[i[1]] = current
     json.dump(result, open("article.json", "w", encoding="utf8"), ensure_ascii=False)
     print("Exported output > article.json")
