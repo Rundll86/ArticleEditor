@@ -11,130 +11,24 @@ const projPanelHeight = projPanel.clientHeight;
 const showPanelBtn = document.getElementById("show-panel");
 const showPanelBtnText = showPanelBtn.querySelector("span");
 const addProjBtn = document.getElementById("add-proj");
-addProjBtn.addEventListener("click", () => requestProj("add", {
-    name: projNameInput.value,
-    title: projTitleInput.value,
-    author: projAuthorInput.value,
-    info: projInfoInput.value
-}, pullProjs));
+const addProjBtnText = addProjBtn.innerText;
+const projInfoBar = document.getElementById("create-panel");
+const allMenu = document.getElementById("all-menu");
+const workMenuBtn = document.getElementById("work-menu");
+const workMenuBtnText = workMenuBtn.innerText;
 const delProjBtn = document.getElementById("del-proj");
-delProjBtn.addEventListener("click", () => requestProj("del", { name: ProjBox.selected }, pullProjs));
+delProjBtn.addEventListener("click", () => requestProj("delete", { name: ProjBox.selected }, true, () => pullProjs()));
 const saveProjBtn = document.getElementById("save-proj");
+saveProjBtn.addEventListener("click", () => requestProj("save", { name: ProjBox.selected, content: generateArticle() }, true, () => pullProjs()));
 const readProjBtn = document.getElementById("read-proj");
+readProjBtn.addEventListener("click", () => requestProj("read", { name: ProjBox.selected }, false, (data) => {
+    loadToEditor(data.json);
+}));
 const projList = document.getElementById("proj-list");
 const userPwdInput = document.getElementById("user-pwd");
 const loadingText = document.getElementById("loading-text");
+const readyText = loadingText.innerText;
 const projBoxes = document.getElementById("proj-boxes");
-userPwdInput.addEventListener("change", () => { userPasswd = userPwdInput.value; });
-showPanelBtn.addEventListener("click", () => {
-    panelOpen = !panelOpen;
-    updateProjPanel();
-});
-var panelOpen = false;
-function updateProjPanel() {
-    projPanel.style.height = panelOpen ? projPanelHeight + "px" : "0px";
-    if (panelOpen) {
-        showPanelBtnText.className = "fa fa-angle-double-up";
-        projPanel.style.transform = "scale(1,1)";
-        projPanel.style.opacity = "1";
-    } else {
-        showPanelBtnText.className = "fa fa-angle-double-down";
-        projPanel.style.transform = "scale(1,0)";
-        projPanel.style.opacity = "0";
-        ProjBox.selected = null;
-        ProjBox.update();
-    };
-};
-idControlBox.addEventListener("mouseover", () => { moveingBox = true; });
-idControlBox.addEventListener("mouseout", () => { moveingBox = false; });
-const lineTypes = {
-    talk: "talk",
-    select: "select",
-    end: "end"
-};
-geneCodeBtn.addEventListener("click", () => {
-    let oldtext = geneCodeBtn.innerText;
-    navigator.clipboard.writeText(generateArticle());
-    geneCodeBtn.innerText = "生成完成！已复制代码！";
-    setTimeout(() => {
-        geneCodeBtn.innerText = oldtext;
-    }, 2000);
-});
-const geneJsonBtn = document.getElementById("gene-json");
-geneJsonBtn.addEventListener("click", () => {
-    let oldtext = geneJsonBtn.innerText;
-    $.ajax({
-        url: "/api/toJson",
-        type: "post",
-        data: {
-            data: generateArticle()
-        },
-        success(data) {
-            navigator.clipboard.writeText(JSON.stringify(data));
-            geneJsonBtn.innerText = "编译完成！已复制代码！";
-            setTimeout(() => {
-                geneJsonBtn.innerText = oldtext;
-            }, 2000);
-        }
-    });
-});
-document.getElementById("load-code").addEventListener("click", () => {
-    let selector = document.createElement("input");
-    selector.type = "file";
-    selector.addEventListener("change", () => {
-        let reader = new FileReader();
-        reader.readAsText(selector.files[0], "utf8");
-        reader.addEventListener("load", () => {
-            $.ajax({
-                url: "/api/toJson",
-                type: "post",
-                data: {
-                    data: reader.result
-                },
-                success(data) {
-                    msgboxCont.innerHTML = "";
-                    lines = {};
-                    let offsetx = 0;
-                    let offsety = 0;
-                    Object.keys(data).forEach(eid => {
-                        let e = data[eid];
-                        let id;
-                        if (e.type === "talk") {
-                            id = addBox(e.emoji, e.output, e.content, eid, e.jumpTo);
-                        }
-                        else if (e.type === "select") {
-                            id = addSelectBox(e.emoji, e.output, e.content, eid, e.options);
-                        } else {
-                            id = addEnd(eid);
-                        };
-                        lines[id].pos[0] += offsetx;
-                        lines[id].pos[1] += offsety;
-                        offsetx += 100;
-                        offsety += 150;
-                    });
-                }
-            });
-        });
-    });
-    selector.click();
-});
-var userPasswd = "";
-function requestProj(type, data, callback = (_data) => { }) {
-    $.ajax({
-        url: "/api/project/" + userPasswd + "/" + type,
-        type: "post",
-        data,
-        success(data) {
-            let dataA = JSON.parse(data);
-            if (dataA.status) {
-                callback(dataA.message);
-            } else {
-                loadingText.innerText = "失败！" + dataA.message;
-            };
-        },
-        error() { loadingText.innerText = "未知错误，请刷新网页重试。"; }
-    });
-};
 class ProjBox {
     /**
      * @type {Array<ProjBox>}
@@ -145,6 +39,7 @@ class ProjBox {
         this.boxes = {};
         this.selected = null;
         this.update();
+        projBoxes.innerHTML = "";
     };
     static update() {
         delProjBtn.disabled = !this.selected;
@@ -187,31 +82,175 @@ class ProjBox {
         this.name = name;
     }
 };
-function pullProjs() {
-    loadingText.innerText = "正在拉取云端项目";
+userPwdInput.addEventListener("change", () => { userPasswd = userPwdInput.value; });
+var showablePanel = {
+    content: {},
+    update(name) {
+        let { target, internalCallback, status } = this.content[name];
+        target.style.height = this.content[name].status ? this.content[name].initHeight + "px" : "0px";
+        target.style.transform = `scale(1,${this.content[name].status ? 1 : 0})`;
+        target.style.opacity = this.content[name].status ? 1 : 0;
+        internalCallback(status);
+    },
+    create(name, target, controller, status = true, internalCallback = () => { }, userCallback = () => { },) {
+        this.content[name] = { status, initHeight: target.clientHeight, target, internalCallback, userCallback };
+        this.update(name);
+        controller.addEventListener("click", () => {
+            let { status } = this.content[name];
+            this.content[name].status = !status;
+            this.update(name);
+            userCallback(!status);
+        });
+    }
+};
+showablePanel.create("proj-info-bar", projInfoBar, addProjBtn, true, (status) => {
+    if (status) {
+        addProjBtn.innerText = "确认新建！";
+    } else {
+        addProjBtn.innerText = addProjBtnText
+    };
+}, (status) => {
+    if (!status) {
+        requestProj("add", {
+            name: projNameInput.value,
+            title: projTitleInput.value,
+            author: projAuthorInput.value,
+            info: projInfoInput.value
+        }, true, () => pullProjs());
+    };
+});
+showablePanel.create("proj", projPanel, showPanelBtn, false, (status) => {
+    if (status) { showPanelBtnText.className = "fa fa-angle-double-up" }
+    else {
+        showPanelBtnText.className = "fa fa-angle-double-down";
+        ProjBox.selected = null;
+        ProjBox.reset();
+        showablePanel.content["proj-info-bar"].status = false;
+        showablePanel.update("proj-info-bar");
+    };
+});
+showablePanel.content["proj-info-bar"].status = false;
+showablePanel.update("proj-info-bar");
+showablePanel.create("all-menu", allMenu, workMenuBtn, false, (status) => {
+    if (status) { workMenuBtn.innerText = "收起"; }
+    else {
+        workMenuBtn.innerText = workMenuBtnText;
+        showablePanel.content["proj"].status = false;
+        showablePanel.update("proj");
+    };
+});
+idControlBox.addEventListener("mouseover", () => { moveingBox = true; });
+idControlBox.addEventListener("mouseout", () => { moveingBox = false; });
+const lineTypes = {
+    talk: "talk",
+    select: "select",
+    end: "end"
+};
+geneCodeBtn.addEventListener("click", () => {
+    let oldtext = geneCodeBtn.innerText;
+    navigator.clipboard.writeText(generateArticle());
+    geneCodeBtn.innerText = "生成完成！已复制代码！";
+    setTimeout(() => {
+        geneCodeBtn.innerText = oldtext;
+    }, 2000);
+});
+const geneJsonBtn = document.getElementById("gene-json");
+geneJsonBtn.addEventListener("click", () => {
+    let oldtext = geneJsonBtn.innerText;
     $.ajax({
-        url: "/api/project/" + userPasswd + "/getall",
+        url: "/api/toJson",
         type: "post",
+        data: {
+            data: generateArticle()
+        },
         success(data) {
-            ProjBox.reset();
-            let dataA = JSON.parse(data);
-            if (dataA.status) {
-                projBoxes.innerHTML = "";
-                for (let i in dataA.message) {
-                    let current = dataA.message[i];
-                    projBoxes.appendChild(
-                        new ProjBox(current.title, current.name, current.author, current.info).result
-                    );
-                };
-                loadingText.innerText = "拉取成功！";
-            }
-            else {
-                loadingText.innerText = "失败！" + dataA.message;
-            };
+            navigator.clipboard.writeText(JSON.stringify(data));
+            geneJsonBtn.innerText = "编译完成！已复制代码！";
+            setTimeout(() => {
+                geneJsonBtn.innerText = oldtext;
+            }, 2000);
         }
     });
+});
+function loadToEditor(data) {
+    let offsetx = 0;
+    let offsety = 0;
+    Object.keys(data).forEach(eid => {
+        let e = data[eid];
+        let id;
+        if (e.type === "talk") {
+            id = addBox(e.emoji, e.output, e.content, eid, e.jumpTo);
+        }
+        else if (e.type === "select") {
+            id = addSelectBox(e.emoji, e.output, e.content, eid, e.options);
+        } else {
+            id = addEnd(eid);
+        };
+        lines[id].pos[0] += offsetx;
+        lines[id].pos[1] += offsety;
+        offsetx += 100;
+        offsety += 150;
+    });
 };
-document.getElementById("pull-proj").addEventListener("click", pullProjs);
+document.getElementById("load-code").addEventListener("click", () => {
+    let selector = document.createElement("input");
+    selector.type = "file";
+    selector.addEventListener("change", () => {
+        let reader = new FileReader();
+        reader.readAsText(selector.files[0], "utf8");
+        reader.addEventListener("load", () => {
+            $.ajax({
+                url: "/api/toJson",
+                type: "post",
+                data: {
+                    data: reader.result
+                },
+                success(data) {
+                    msgboxCont.innerHTML = "";
+                    lines = {};
+                    loadToEditor(data);
+                }
+            });
+        });
+    });
+    selector.click();
+});
+var userPasswd = "";
+function requestProj(type, data, autoMessage = true, callback = (_data) => { }) {
+    $.ajax({
+        url: "/api/project/" + userPasswd + "/" + type,
+        type: "post",
+        data,
+        success(data) {
+            let dataA = JSON.parse(data);
+            if (dataA.status) {
+                autoMessage ? loadingText.innerText = dataA.message : null;
+                callback(dataA.message);
+            } else {
+                loadingText.innerText = "失败！" + dataA.message;
+            };
+        },
+        error() { loadingText.innerText = "未知错误，请刷新网页重试。"; }
+    });
+};
+function pullProjs(cb = () => { }) {
+    requestProj("getall", {}, false, (data) => {
+        ProjBox.reset();
+        for (let i in data) {
+            let current = data[i];
+            projBoxes.appendChild(
+                new ProjBox(current.title, current.name, current.author, current.info).result
+            );
+        };
+        cb();
+    });
+};
+document.getElementById("pull-proj").addEventListener("click", () => {
+    loadingText.innerText = "正在拉取";
+    pullProjs(() => {
+        loadingText.innerText = readyText;
+    });
+});
 const msgboxCont = document.getElementById("msgbox-c");
 const clickedElement = {
     drop: false
@@ -432,7 +471,7 @@ window.addEventListener("mouseup", () => {
     };
 });
 window.addEventListener("mousemove", (e) => {
-    !moveingBox ? e.preventDefault() : null;
+    e.preventDefault();
     mosuePos.x = e.clientX;
     mosuePos.y = e.clientY;
     if (clickedElement.drop) {
@@ -662,4 +701,3 @@ function updateLines() {
     requestAnimationFrame(updateLines);
 };
 requestAnimationFrame(updateLines);
-updateProjPanel();

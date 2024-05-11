@@ -3,8 +3,91 @@ import flask, os, subprocess, json, shutil
 app = flask.Flask(__name__)
 
 
+class ProjectApi:
+    arg = {}
+
+    def add(self):
+        if self.arg["name"] in projectConfig["validDir"]:
+            return createResponse(False, "文章已存在")
+        projectConfig["validDir"].append(self.arg["name"])
+        os.mkdir("project/" + self.arg["name"])
+        open(
+            "project/" + self.arg["name"] + "/article.txt",
+            "w",
+            encoding="utf8",
+        ).close()
+        json.dump(
+            {
+                "title": self.arg["title"],
+                "author": self.arg["author"],
+                "info": self.arg["info"],
+                "file": "article.txt",
+            },
+            open(
+                "project/" + self.arg["name"] + "/project.json",
+                "w",
+                encoding="utf8",
+            ),
+            ensure_ascii=False,
+        )
+        saveProjectConfig()
+        return createResponse(True, "文章创建成功！")
+
+    def delete(self):
+        if self.arg["name"] not in projectConfig["validDir"]:
+            return createResponse(False, "文章不存在")
+        projectConfig["validDir"].remove(self.arg["name"])
+        shutil.rmtree("project/" + self.arg["name"])
+        saveProjectConfig()
+        return createResponse(True, "文章删除成功！")
+
+    def save(self):
+        if self.arg["name"] not in projectConfig["validDir"]:
+            return createResponse(False, "文章不存在")
+        open(
+            "project/"
+            + self.arg["name"]
+            + "/"
+            + readProjectConfig(self.arg["name"])["file"],
+            "w",
+            encoding="utf8",
+        ).write(self.arg["content"])
+        return createResponse(True, "文章保存成功！")
+
+    def read(self):
+        if self.arg["name"] not in projectConfig["validDir"]:
+            return createResponse(False, "文章不存在")
+        filename = (
+            "project/"
+            + self.arg["name"]
+            + "/"
+            + readProjectConfig(self.arg["name"])["file"]
+        )
+        os.system(f'python3 ArticleLoader.py "{filename}"')
+        return createResponse(
+            True,
+            {
+                "code": open(
+                    filename,
+                    encoding="utf8",
+                ).read(),
+                "json": json.load(open("article.json", encoding="utf8")),
+            },
+        )
+
+    def getall(self):
+        return createResponse(True, list(projectJsons.values()))
+
+
+project_api = ProjectApi()
+
+
 def createResponse(status, message):
     return json.dumps({"status": status, "message": message}, ensure_ascii=False)
+
+
+def readProjectConfig(name):
+    return json.load(open("project/" + name + "/project.json", encoding="utf8"))
 
 
 def saveProjectConfig():
@@ -42,7 +125,7 @@ def tojson():
     while "\n" in res or " " in res:
         res = res.replace()
     open("article.txt", "w", encoding="utf8").write(res)
-    subprocess.run(["python", "ArticleLoader.py"], shell=True)
+    os.system("python3 ArticleLoader.py")
     return flask.send_file("article.json")
 
 
@@ -50,40 +133,11 @@ def tojson():
 def project(passwd, name):
     if passwd != projectConfig["password"]:
         return createResponse(False, "密码不对")
-    if name == "add":
-        if flask.request.form["name"] in projectConfig["validDir"]:
-            return createResponse(False, "文章已存在")
-        projectConfig["validDir"].append(flask.request.form["name"])
-        os.mkdir("project/" + flask.request.form["name"])
-        open(
-            "project/" + flask.request.form["name"] + "/article.txt",
-            "w",
-            encoding="utf8",
-        ).close()
-        json.dump(
-            {
-                "title": flask.request.form["title"],
-                "author": flask.request.form["author"],
-                "info": flask.request.form["info"],
-                "file": "article.txt",
-            },
-            open(
-                "project/" + flask.request.form["name"] + "/project.json",
-                "w",
-                encoding="utf8",
-            ),
-            ensure_ascii=False,
-        )
-        saveProjectConfig()
-    elif name == "del":
-        if flask.request.form["name"] not in projectConfig["validDir"]:
-            return createResponse(False, "文章不存在")
-        projectConfig["validDir"].remove(flask.request.form["name"])
-        shutil.rmtree("project/" + flask.request.form["name"])
-        saveProjectConfig()
-    elif name == "getall":
-        return createResponse(True, list(projectJsons.values()))
-    return createResponse(True, "操作成功！")
+    project_api.arg = flask.request.form.to_dict()
+    if name in ProjectApi.__dict__.keys():
+        return ProjectApi.__dict__[name](project_api)
+    else:
+        return createResponse(False, "无效操作类型")
 
 
 app.run("0.0.0.0", 25565)

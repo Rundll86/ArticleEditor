@@ -3,7 +3,8 @@
     padding: 0;
     border: none;
     outline: none;
-    transition: all .2s ease-out;
+    transition: all .2s ease-in-out;
+    --bgcolor: rgb(245, 245, 245);
 }
 
 #msgbox-c,
@@ -25,7 +26,7 @@ body {
     width: 100vw;
     padding-top: 10px;
     padding-bottom: 10px;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--bgcolor);
     text-align: center;
 }
 
@@ -142,6 +143,7 @@ body {
 
 .frame-box {
     border: rgba(0, 0, 0, 0.2) 2px solid;
+    background-color: var(--bgcolor);
     border-radius: 5px;
     margin: 10px;
     padding: 5px;
@@ -155,6 +157,8 @@ body {
 #create-panel {
     width: 60%;
     display: inline-block;
+    overflow: hidden;
+    transform-origin: 50% 100%;
 }
 
 #proj-list .proj-box {
@@ -212,5 +216,9 @@ body {
 
 #proj-panel {
     overflow: hidden;
+    transform-origin: 50% 0%;
+}
+
+#all-menu {
     transform-origin: 50% 0%;
 }
