@@ -1,4 +1,4 @@
-**Editing and Developing game stories on GUI.**  
+**Editing and Developing game tree-shaped stories on GUI.**  
 Requeire:
 - Python 3
 - Pip
