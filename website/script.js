@@ -453,13 +453,17 @@ function addEnd(mid) {
 };
 function addImage(mid = null, to = "", src = "") {
     let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
+    let myImage = eleTree("img").attr("src", src).clsName("imageInput");
     let res = eleTree("div").clsName("msgbox").child(
         eleTree("div").attr("innerText", "切换背景图像").clsName("msgbox-title")
     ).child(
-        eleTree("div").child(
-            eleTree("img").attr("src", src).clsName("imageInput")
-        ).child(br()).child(
-            eleTree("button").attr("innerText", "上传图像")
+        eleTree("div").child(myImage).child(br()).child(
+            eleTree("button").attr("innerText", "上传图像").listener("click", () => uploadMedia((data) => {
+                if (data.status) {
+                    lines[myid].src = data.filename;
+                    myImage.result.src = "/getAsset/" + lines[myid].src;
+                };
+            }))
         ).clsName("contentEdit")
     ).child(
         eleTree("div").clsName("connectStart").child(
@@ -490,15 +494,42 @@ function addImage(mid = null, to = "", src = "") {
     idLast++;
     return myid;
 };
+function uploadMedia(callback = (_) => { }) {
+    let inputer = document.createElement("input");
+    inputer.type = "file";
+    inputer.addEventListener("change", () => {
+        let data = new FormData();
+        data.append("target", inputer.files[0]);
+        $.ajax({
+            url: "/api/uploadMedia",
+            type: "post",
+            data,
+            processData: false,
+            contentType: false,
+            success(data) {
+                if (callback instanceof Function) {
+                    let dataA = JSON.parse(data);
+                    dataA.filename = inputer.files[0].name;
+                    callback(dataA);
+                };
+            }
+        });
+    });
+    inputer.click();
+};
 function addVideo(mid = null, to = "", src = "") {
     let myid = mid ? mid : "ArticleEditor_AutoGenerate_ID" + idLast;
+    let myVideo = eleTree("video").attr("src", src).clsName("videoInput");
     let res = eleTree("div").clsName("msgbox").child(
         eleTree("div").attr("innerText", "播放视频").clsName("msgbox-title")
     ).child(
-        eleTree("div").child(
-            eleTree("video").attr("src", src).clsName("videoInput")
-        ).child(br()).child(
-            eleTree("button").attr("innerText", "上传视频")
+        eleTree("div").child(myVideo).child(br()).child(
+            eleTree("button").attr("innerText", "上传视频").listener("click", () => uploadMedia((data) => {
+                if (data.status) {
+                    lines[myid].src = data.filename;
+                    myVideo.result.src = "/getAsset/" + lines[myid].src;
+                };
+            }))
         ).clsName("contentEdit")
     ).child(
         eleTree("div").clsName("connectStart").child(

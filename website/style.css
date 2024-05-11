@@ -222,3 +222,10 @@ body {
 #all-menu {
     transform-origin: 50% 0%;
 }
+
+.imageInput,
+.videoInput {
+    height: 200px;
+    width: 400px;
+    background-color: gray;
+}

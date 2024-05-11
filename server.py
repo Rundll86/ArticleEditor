@@ -1,4 +1,4 @@
-import flask, os, json, shutil
+import flask, os, json, shutil, imghdr, subprocess
 
 app = flask.Flask(__name__)
 
@@ -63,7 +63,7 @@ class ProjectApi:
             + "/"
             + readProjectConfig(self.arg["name"])["file"]
         )
-        os.system(f'python3 ArticleLoader.py "{filename}"')
+        os.system(f'python ArticleLoader.py "{filename}"')
         return createResponse(
             True,
             {
@@ -98,6 +98,35 @@ def saveProjectConfig():
     )
 
 
+def is_image(file_path):
+    try:
+        return imghdr.what(file_path) is not None
+    except Exception:
+        return False
+
+
+def is_video(file_path):
+    try:
+        command = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_streams",
+            file_path,
+        ]
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        video_info = json.loads(result.stdout)
+        if "streams" in video_info:
+            for stream in video_info["streams"]:
+                if "codec_type" in stream and stream["codec_type"] == "video":
+                    return True
+        return False
+    except:
+        return False
+
+
 @app.before_request
 def reload():
     global projectConfig, projectJsons
@@ -125,19 +154,39 @@ def tojson():
     while "\n" in res or " " in res:
         res = res.replace()
     open("article.txt", "w", encoding="utf8").write(res)
-    os.system("python3 ArticleLoader.py")
+    os.system("python ArticleLoader.py")
     return flask.send_file("article.json")
 
 
 @app.route("/api/project/<passwd>/<name>", methods=["post"])
 def project(passwd, name):
     if passwd != projectConfig["password"]:
-        return createResponse(False, "密码不对")
+        return createResponse(False, "密码错误")
     project_api.arg = flask.request.form.to_dict()
     if name in ProjectApi.__dict__.keys():
         return ProjectApi.__dict__[name](project_api)
     else:
         return createResponse(False, "无效操作类型")
+
+
+@app.route("/api/uploadMedia", methods=["post"])
+def uploadMedia():
+    target = flask.request.files["target"]
+    path = "mediaAsset/" + target.filename
+    target.save(path)
+    if not is_image(path) and not is_video(path):
+        os.remove(path)
+        return createResponse(False, "无效媒体类型")
+    return createResponse(True, "上传成功")
+
+
+@app.route("/getAsset/<name>")
+def getAsset(name):
+    path = "mediaAsset/" + name
+    if os.path.exists(path):
+        return flask.send_file(path)
+    else:
+        return flask.make_response("not found", 404)
 
 
 app.run("0.0.0.0", 25565)
