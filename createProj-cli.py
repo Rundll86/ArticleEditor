@@ -1,10 +1,10 @@
 import os, json
 
 name, title, author, info, file = (
-    input("name"),
-    input("title"),
-    input("author"),
-    input("info"),
+    input("name: "),
+    input("title: "),
+    input("author: "),
+    input("info: "),
     "article.txt",
 )
 os.mkdir("project/" + name)
