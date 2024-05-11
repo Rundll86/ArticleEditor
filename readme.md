@@ -1,5 +1,5 @@
 **Editing and Developing game tree-shaped stories on GUI.**  
-Requeire:
+Require:
 - Python 3
 - Pip
 - Internet
