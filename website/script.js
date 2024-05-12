@@ -743,7 +743,7 @@ function generateArticle() {
             };
         }
     );
-    return res;
+    return res.replaceAll(";",";\n");
 };
 reset();
 function updateLines() {

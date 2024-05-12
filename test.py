@@ -1,3 +1,3 @@
-from processor import projectDecoder
+from processor import projectDecoder, articleLoader
 
-projectDecoder.run("output/akg/testProject.akg", "testProject")
+articleLoader.run("project/testProject/article.txt")

@@ -23,6 +23,7 @@ class ProjectApi:
                 "author": self.arg["author"],
                 "info": self.arg["info"],
                 "file": "article.txt",
+                "entry": "",
             },
             open(
                 "project/" + self.arg["name"] + "/project.json",
