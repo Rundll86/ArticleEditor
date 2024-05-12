@@ -1,4 +1,5 @@
 import flask, os, json, shutil, imghdr, subprocess
+from processor import articleLoader, projectCompiler, projectDecoder
 
 app = flask.Flask(__name__)
 
@@ -63,7 +64,7 @@ class ProjectApi:
             + "/"
             + readProjectConfig(self.arg["name"])["file"]
         )
-        os.system(f'python ArticleLoader.py "{filename}"')
+        articleLoader.run(filename)
         return createResponse(
             True,
             {
@@ -74,6 +75,12 @@ class ProjectApi:
                 "json": json.load(open("article.json", encoding="utf8")),
             },
         )
+
+    def build(self):
+        if self.arg["name"] not in projectConfig["validDir"]:
+            return createResponse(False, "文章不存在")
+        projectCompiler.run(self.arg["name"])
+        return createResponse(True, "/getBuildResult/" + self.arg["name"])
 
     def getall(self):
         return createResponse(True, list(projectJsons.values()))
@@ -154,7 +161,7 @@ def tojson():
     while "\n" in res or " " in res:
         res = res.replace()
     open("article.txt", "w", encoding="utf8").write(res)
-    os.system("python ArticleLoader.py")
+    articleLoader.run("article.txt")
     return flask.send_file("article.json")
 
 
@@ -187,6 +194,11 @@ def getAsset(name):
         return flask.send_file(path)
     else:
         return flask.make_response("not found", 404)
+
+
+@app.route("/getBuildResult/<name>")
+def getBuildResult(name):
+    return flask.send_file("output/akg/" + name + ".akg")
 
 
 app.run("0.0.0.0", 25565)

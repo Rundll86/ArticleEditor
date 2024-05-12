@@ -23,8 +23,13 @@ delProjBtn.addEventListener("click", () => requestProj("delete", { name: ProjBox
 const saveProjBtn = document.getElementById("save-proj");
 saveProjBtn.addEventListener("click", () => requestProj("save", { name: ProjBox.selected, content: generateArticle() }, true, () => pullProjs()));
 const readProjBtn = document.getElementById("read-proj");
-readProjBtn.addEventListener("click", () => requestProj("read", { name: ProjBox.selected }, false, (data) => {
-    loadToEditor(data.json);
+readProjBtn.addEventListener("click", () => requestProj("read", { name: ProjBox.selected }, false, data => loadToEditor(data.json)));
+const compAkgBtn = document.getElementById("comp-akg");
+compAkgBtn.addEventListener("click", () => requestProj("build", { name: ProjBox.selected }, false, data => {
+    let downloader = document.createElement("a");
+    downloader.download = ProjBox.selected + ".akg";
+    downloader.href = data;
+    downloader.click();
 }));
 const projList = document.getElementById("proj-list");
 const userPwdInput = document.getElementById("user-pwd");
@@ -47,6 +52,7 @@ class ProjBox {
         delProjBtn.disabled = !this.selected;
         saveProjBtn.disabled = !this.selected;
         readProjBtn.disabled = !this.selected;
+        compAkgBtn.disabled = !this.selected;
     };
     result = null;
     selected = false;
