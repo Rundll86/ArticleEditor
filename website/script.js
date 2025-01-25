@@ -156,17 +156,24 @@ const lineTypes = {
     image: "image",
     video: "video"
 };
+function copy(msg) {
+    try {
+        navigator.clipboard.writeText(msg);
+        alert("代码复制成功。");
+    } catch {
+        alert("无法访问剪切板，但是已拉起下载文件。");
+        const url = URL.createObjectURL(new Blob([msg]));
+        const alink = document.createElement("a");
+        alink.href = url;
+        alink.download = "article.json";
+        alink.click();
+    };
+};
 geneCodeBtn.addEventListener("click", () => {
-    let oldtext = geneCodeBtn.innerText;
-    navigator.clipboard.writeText(generateArticle());
-    geneCodeBtn.innerText = "生成完成！已复制代码！";
-    setTimeout(() => {
-        geneCodeBtn.innerText = oldtext;
-    }, 2000);
+    copy(generateArticle());
 });
 const geneJsonBtn = document.getElementById("gene-json");
 geneJsonBtn.addEventListener("click", () => {
-    let oldtext = geneJsonBtn.innerText;
     $.ajax({
         url: "/api/toJson",
         type: "post",
@@ -174,11 +181,7 @@ geneJsonBtn.addEventListener("click", () => {
             data: generateArticle()
         },
         success(data) {
-            navigator.clipboard.writeText(JSON.stringify(data));
-            geneJsonBtn.innerText = "生成完成！已复制代码！";
-            setTimeout(() => {
-                geneJsonBtn.innerText = oldtext;
-            }, 2000);
+            copy(JSON.stringify(data));
         }
     });
 });
@@ -743,7 +746,7 @@ function generateArticle() {
             };
         }
     );
-    return res.replaceAll(";",";\n");
+    return res.replaceAll(";", ";\n");
 };
 reset();
 function updateLines() {

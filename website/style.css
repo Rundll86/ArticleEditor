@@ -5,6 +5,7 @@
     outline: none;
     transition: all .2s ease-in-out;
     --bgcolor: rgb(245, 245, 245);
+    user-select: none;
 }
 
 #msgbox-c,
